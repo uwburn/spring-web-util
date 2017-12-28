@@ -67,13 +67,6 @@ public class EnhancedWebMvcConfigurerAdapter extends WebMvcConfigurerAdapter imp
                 .filter(p -> p.length() > 0)
                 .findFirst()
                 .orElse("");
-        
-        /*Set<String> classNames = Arrays.stream(configAnn.packages())
-                .filter(p -> p.length() > 0)
-                .map(p -> provider.findCandidateComponents(p))
-                .flatMap(Set::stream)
-                .map(BeanDefinition::getBeanClassName)
-                .collect(Collectors.toSet());*/
     	
         classNames.forEach((n) -> {
             try {
