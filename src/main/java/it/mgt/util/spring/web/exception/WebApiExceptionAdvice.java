@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 
 @ControllerAdvice
 public class WebApiExceptionAdvice {
@@ -30,6 +33,21 @@ public class WebApiExceptionAdvice {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @ResponseStatus(value = HttpStatus.METHOD_NOT_ALLOWED)
     public void httpRequestMethodNotSupportedException(HttpServletRequest req, Exception e) {
+    }
+    
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    @ResponseStatus(value = HttpStatus.NOT_ACCEPTABLE)
+    public void httpMediaTypeNotAcceptableException(HttpServletRequest req, Exception e) {
+    }
+    
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(value = HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public void httpMediaTypeNotSupportedException(HttpServletRequest req, Exception e) {
+    }
+    
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+    public void httpMessageNotReadableException(HttpServletRequest req, Exception e) {
     }
 
     @ExceptionHandler(WebException.class)
