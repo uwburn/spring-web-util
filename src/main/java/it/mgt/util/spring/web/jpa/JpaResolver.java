@@ -87,23 +87,27 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
         Map<String, Class<?>> hints = getHints(type);
 
         Query query = em.createNamedQuery(queryName);
-
-        params.entrySet().forEach((e) -> {
-            query.setParameter(e.getKey(), buildParams(e.getKey(), e.getValue(), hints));
-        });
         
         Integer page = (Integer) buildParams(pageParamName, params.get(pageParamName), hints);
         Integer pageSize = (Integer) buildParams(pageSizeParamName, params.get(pageSizeParamName), hints);
-        
+        params.remove(pageParamName);
+        params.remove(pageSizeParamName);
         if (page != null && pageSize != null) {
             query.setFirstResult(page * pageSize);
             query.setMaxResults(pageSize);
         }
+        
+        params.entrySet().forEach((e) -> {
+            query.setParameter(e.getKey(), buildParams(e.getKey(), e.getValue(), hints));
+        });
 
         return query.getResultList();
     }
     
     protected Object buildParams(String name, List<String> values, Map<String, Class<?>> hints) {
+        if (values == null)
+            return null;
+        
         switch (values.size()) {
             case 0:
                 return null;
@@ -173,7 +177,7 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
         Map<String, List<String>> params = getParameters(nativeWebRequest, ann);
         
         if (ann.query().length() > 0 && ann.primaryKey().length() > 0)
-            throw new RuntimeException("query and primaryKey parameters are mutually exclusive");
+            throw new UnsupportedOperationException("query and primaryKey parameters are mutually exclusive");
         
         String queryName;
         if (ann.primaryKey().length() > 0) {
@@ -213,23 +217,28 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
         
         params.remove(queryParamName);
 
-        if (List.class.isAssignableFrom(methodParameter.getParameterType())) {
-            ParameterizedType type = (ParameterizedType) methodParameter.getGenericParameterType();
-            Class<?> clazz = Class.forName(type.getActualTypeArguments()[0].getTypeName());
-            
-            if (ann.primaryKey().length() > 0)
-                return resolveListByPrimaryKey(ann.primaryKey(), params, clazz);
-            else
-                return resolveListByQuery(queryName, params, clazz);
+        try {
+            if (List.class.isAssignableFrom(methodParameter.getParameterType())) {
+                ParameterizedType type = (ParameterizedType) methodParameter.getGenericParameterType();
+                Class<?> clazz = Class.forName(type.getActualTypeArguments()[0].getTypeName());
+
+                if (ann.primaryKey().length() > 0)
+                    return resolveListByPrimaryKey(ann.primaryKey(), params, clazz);
+                else
+                    return resolveListByQuery(queryName, params, clazz);
+            }
+            else if (Collection.class.isAssignableFrom(methodParameter.getParameterType())) {
+                throw new UnsupportedOperationException(methodParameter.getParameterType().getName() + "is not a supported collection");
+            }
+            else if (ann.primaryKey().length() > 0) {
+                return resolveSingleByPrimaryKey(ann.primaryKey(), params, methodParameter.getParameterType(), ann.notFoundException());
+            }
+            else {
+                return resolveSingleByQuery(queryName, params, methodParameter.getParameterType(), ann.notFoundException());
+            }
         }
-        else if (Collection.class.isAssignableFrom(methodParameter.getParameterType())) {
-            throw new RuntimeException("Unsupported collection");
-        }
-        else if (ann.primaryKey().length() > 0) {
-            return resolveSingleByPrimaryKey(ann.primaryKey(), params, methodParameter.getParameterType(), ann.notFoundException());
-        }
-        else {
-            return resolveSingleByQuery(queryName, params, methodParameter.getParameterType(), ann.notFoundException());
+        catch(IllegalArgumentException ignored) {
+            throw new BadRequestException();
         }
     }
     
