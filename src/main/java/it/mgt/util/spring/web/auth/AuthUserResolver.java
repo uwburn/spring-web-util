@@ -1,7 +1,6 @@
 package it.mgt.util.spring.web.auth;
 
 import it.mgt.util.spring.auth.AuthUser;
-import it.mgt.util.spring.web.auth.AuthRequestWrapper;
 import it.mgt.util.spring.web.exception.BadRequestException;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
