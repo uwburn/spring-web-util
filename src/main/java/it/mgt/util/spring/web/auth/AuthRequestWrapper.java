@@ -175,6 +175,7 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
     }
 
     @Override
+    @Deprecated
     public boolean isRequestedSessionIdFromUrl() {
         return originalRequest.isRequestedSessionIdFromUrl();
     }

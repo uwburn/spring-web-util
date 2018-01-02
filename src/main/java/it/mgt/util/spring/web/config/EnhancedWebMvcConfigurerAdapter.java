@@ -14,9 +14,9 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-public class EnhancedWebMvcConfigurerAdapter extends WebMvcConfigurerAdapter implements ApplicationContextAware {
+public class EnhancedWebMvcConfigurerAdapter implements WebMvcConfigurer, ApplicationContextAware {
     
     protected ApplicationContext applicationContext;
 
@@ -27,8 +27,6 @@ public class EnhancedWebMvcConfigurerAdapter extends WebMvcConfigurerAdapter imp
     
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-        super.addArgumentResolvers(argumentResolvers);
-        
         Map<String, Object> resolvers = applicationContext.getBeansWithAnnotation(Resolver.class);
         resolvers.values().forEach((o) -> {
             argumentResolvers.add((HandlerMethodArgumentResolver) o);
