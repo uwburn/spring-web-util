@@ -1,4 +1,4 @@
-package it.mgt.util.spring.web.jpa;
+package it.mgt.util.spring.web.resolver;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,9 +7,9 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
-public @interface PathParam {
+public @interface QueryParam {
     
-    String path();
-    String name();
+    String queryStringParam();
+    String jpaQueryParam();
 
 }
