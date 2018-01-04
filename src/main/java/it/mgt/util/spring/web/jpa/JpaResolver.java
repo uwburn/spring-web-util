@@ -1,39 +1,24 @@
 package it.mgt.util.spring.web.jpa;
 
-import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import it.mgt.util.jpa.JpaUtils;
+import it.mgt.util.jpa.ParamHint;
+import it.mgt.util.jpa.ParamHints;
+import it.mgt.util.spring.web.exception.BadRequestException;
+import it.mgt.util.spring.web.exception.ForbiddenException;
+import it.mgt.util.spring.web.exception.NotFoundException;
+import it.mgt.util.spring.web.resolver.BaseResolver;
+import org.springframework.core.MethodParameter;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.ModelAndViewContainer;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
-import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.ParameterizedType;
+import java.util.*;
 
-import it.mgt.util.jpa.ParamHint;
-import it.mgt.util.jpa.ParamHints;
-import org.springframework.core.MethodParameter;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
-import org.springframework.web.servlet.HandlerMapping;
-
-import it.mgt.util.spring.web.exception.BadRequestException;
-import it.mgt.util.spring.web.exception.ForbiddenException;
-import it.mgt.util.spring.web.exception.NotFoundException;
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.stream.Collectors;
-
-public class JpaResolver implements HandlerMethodArgumentResolver {
+public class JpaResolver extends BaseResolver {
 
     @PersistenceContext
     protected EntityManager em;
@@ -49,9 +34,26 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
     public void setQueryParamName(String queryParamName) {
         this.queryParamName = queryParamName;
     }
-    
+
+    public String getPageParamName() {
+        return pageParamName;
+    }
+
+    public void setPageParamName(String pageParamName) {
+        this.pageParamName = pageParamName;
+    }
+
+    public String getPageSizeParamName() {
+        return pageSizeParamName;
+    }
+
+    public void setPageSizeParamName(String pageSizeParamName) {
+        this.pageSizeParamName = pageSizeParamName;
+    }
+
     protected Object resolveSingleByPrimaryKey(String primaryKeyParam, Map<String, List<String>> params, Class<?> type, boolean notFound) {
         Map<String, Class<?>> hints = getHints(type);
+        hints.put(primaryKeyParam, JpaUtils.getIdClass(type));
         
         List<String> primaryKeyValues = params.get(primaryKeyParam);
         
@@ -73,6 +75,7 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
             return Collections.singletonList(result);
     }
 
+    @SuppressWarnings("unchecked")
     protected Object resolveSingleByQuery(String queryName, Map<String, List<String>> params, Class<?> type, boolean notFound) {
         Object result = resolveListByQuery(queryName, params, type)
                 .stream()
@@ -124,48 +127,7 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
         Object result = value;
         
         Class<?> hint = hints.get(name);
-        if (hint != null) {            
-            if (Boolean.class.isAssignableFrom(hint)) {
-                result = Boolean.parseBoolean(value);
-            }
-            else if (Byte.class.isAssignableFrom(hint)) {
-                result = Byte.parseByte(value);
-            }
-            else if (Short.class.isAssignableFrom(hint)) {
-                result = Short.parseShort(value);
-            }
-            else if (Integer.class.isAssignableFrom(hint)) {
-                result = Integer.parseInt(value);
-            }
-            else if (Long.class.isAssignableFrom(hint)) {
-                result = Long.parseLong(value);
-            }
-            else if (Float.class.isAssignableFrom(hint)) {
-                result = Float.parseFloat(value);
-            }
-            else if (Double.class.isAssignableFrom(hint)) {
-                result = Double.parseDouble(value);
-            }
-            else if (BigInteger.class.isAssignableFrom(hint)) {
-                result = new BigInteger(value);
-            }
-            else if (BigDecimal.class.isAssignableFrom(hint)) {
-                result = new BigDecimal(value);
-            }
-            else if (Date.class.isAssignableFrom(hint)) {
-                result = new Date(Long.parseLong(value));
-            }
-            else if (Enum.class.isAssignableFrom(hint))  {
-                try {
-                    Method valueOf = hint.getMethod("valueOf", String.class);
-                    result = valueOf.invoke(null, value);
-                }
-                catch (Exception ignored) {
-                }
-            }
-        }
-        
-        return result;
+        return parseParam(value, hint);
     }
 
     @Override
@@ -176,7 +138,7 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
     @Override
     public Object resolveArgument(MethodParameter methodParameter, ModelAndViewContainer modelAndViewContainer, NativeWebRequest nativeWebRequest, WebDataBinderFactory webDataBinderFactory) throws Exception {
         JpaInj ann = methodParameter.getParameterAnnotation(JpaInj.class);
-        Map<String, List<String>> params = getParameters(nativeWebRequest, ann);
+        Map<String, List<String>> params = getParameters(nativeWebRequest, ann.pathParams(), ann.queryParams());
         
         if (ann.query().length() > 0 && ann.primaryKey().length() > 0)
             throw new UnsupportedOperationException("query and primaryKey parameters are mutually exclusive");
@@ -259,39 +221,4 @@ public class JpaResolver implements HandlerMethodArgumentResolver {
         return hints;
     }
 
-    protected Map<String, List<String>> getParameters(NativeWebRequest nativeWebRequest, JpaInj ann) {
-        HttpServletRequest httpServletRequest = nativeWebRequest.getNativeRequest(HttpServletRequest.class);
-        Map<String, String> pathVariables = (Map<String, String>) httpServletRequest.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-
-        Map<String, List<String>> params = new HashMap<>();
-
-        for (PathParam pp : ann.pathParams()) {
-            String value = pathVariables.get(pp.path());
-            if (value != null) {
-                List<String> list = new LinkedList<>();
-                list.add(value);
-                params.put(pp.name(), list);
-            }
-        }
-        
-        Map<String, String> queryParamsMapping = Arrays.stream(ann.queryParams())
-                .collect(Collectors.toMap(QueryParam::queryStringParam, QueryParam::jpaQueryParam));
-                
-        Map<String, String[]> queryParams = nativeWebRequest.getParameterMap();
-        queryParams.entrySet().forEach((e) -> {
-            List<String> list = params.get(e.getKey());
-            if (list == null)
-                list = new ArrayList<>();
-
-            list.addAll(Arrays.asList(e.getValue()));
-            
-            String paramName = queryParamsMapping.get(e.getKey());
-            if (paramName == null)
-                paramName = e.getKey();
-                
-            params.put(paramName, list);
-        });
-
-        return params;
-    }
 }
