@@ -2,19 +2,14 @@ package it.mgt.util.spring.web.auth;
 
 import it.mgt.util.spring.auth.AuthUser;
 import it.mgt.util.spring.auth.PrincipalWrapper;
+
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequestWrapper;
+import javax.servlet.http.*;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequestWrapper;
-import javax.servlet.http.Cookie;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpUpgradeHandler;
-import javax.servlet.http.Part;
 
 public class AuthRequestWrapper extends ServletRequestWrapper implements HttpServletRequest {
 
@@ -42,6 +37,10 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
     public final void setAuth(String authType, AuthUser authUser) {
         this.authType = authType;
         this.authUser = authUser;
+
+        // Ensure data is fetched immediately, not when we mightn't have a valid persistence context
+        authUser.getUsername();
+        authUser.authRoles();
     }
 
     public AuthUser getAuthUser() {
@@ -114,6 +113,9 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
 
     @Override
     public boolean isUserInRole(String role) {
+        if (authUser == null)
+            return false;
+
         return authUser.authRoles()
                 .stream()
                 .anyMatch(r -> r.getName().equals(role));
@@ -121,6 +123,9 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
 
     @Override
     public Principal getUserPrincipal() {
+        if (authUser == null)
+            return null;
+
         return new PrincipalWrapper(authUser);
     }
 
