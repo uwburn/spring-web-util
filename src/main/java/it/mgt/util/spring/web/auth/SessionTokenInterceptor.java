@@ -73,10 +73,9 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
         }
 
         Cookie cookie = null;
-        for (int i = 0; i < cookies.length; i++) {
-            cookie = cookies[i];
-
-            if (cookieName.equals(cookie.getName())) {
+        for (Cookie c : cookies) {
+            if (cookieName.equals(c.getName())) {
+                cookie = c;
                 break;
             }
         }
