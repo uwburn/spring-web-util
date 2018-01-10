@@ -1,6 +1,5 @@
 package it.mgt.util.spring.web.exception;
 
-import it.mgt.util.spring.web.exception.WebException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -19,13 +18,13 @@ import org.springframework.web.HttpMediaTypeNotSupportedException;
 @ControllerAdvice
 public class WebApiExceptionAdvice {
 
-    Logger logger = LoggerFactory.getLogger(WebApiExceptionAdvice.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(WebApiExceptionAdvice.class);
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
     @ResponseBody
     public Object exception(HttpServletRequest req, Exception e) {
-        logger.error("Internal server error intercepted", e);
+        LOGGER.error("Internal server error intercepted", e);
 
         return null;
     }
@@ -33,16 +32,19 @@ public class WebApiExceptionAdvice {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @ResponseStatus(value = HttpStatus.METHOD_NOT_ALLOWED)
     public void httpRequestMethodNotSupportedException(HttpServletRequest req, Exception e) {
+        LOGGER.warn("Method not supported", e);
     }
     
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     @ResponseStatus(value = HttpStatus.NOT_ACCEPTABLE)
     public void httpMediaTypeNotAcceptableException(HttpServletRequest req, Exception e) {
+        LOGGER.warn("Media type not acceptable", e);
     }
     
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     @ResponseStatus(value = HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     public void httpMediaTypeNotSupportedException(HttpServletRequest req, Exception e) {
+        LOGGER.warn("Media type not supported", e);
     }
     
     @ExceptionHandler(HttpMessageNotReadableException.class)

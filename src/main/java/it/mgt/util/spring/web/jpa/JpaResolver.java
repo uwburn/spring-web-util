@@ -7,6 +7,8 @@ import it.mgt.util.spring.web.exception.BadRequestException;
 import it.mgt.util.spring.web.exception.ForbiddenException;
 import it.mgt.util.spring.web.exception.NotFoundException;
 import it.mgt.util.spring.web.resolver.BaseResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -19,6 +21,8 @@ import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 public class JpaResolver extends BaseResolver {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(JpaResolver.class);
 
     @PersistenceContext
     protected EntityManager em;
@@ -60,8 +64,10 @@ public class JpaResolver extends BaseResolver {
         Object primaryKey = buildParams(primaryKeyParam, primaryKeyValues, hints);
         Object result = em.find(type, primaryKey);
 
-        if (result == null && notFound)
+        if (result == null && notFound) {
+            LOGGER.debug("Primary-key find produced null result, but non-null value was expected");
             throw new NotFoundException();
+        }
 
         return result;
     }
@@ -82,8 +88,10 @@ public class JpaResolver extends BaseResolver {
                 .findFirst()
                 .orElse(null);
 
-        if (result == null && notFound)
+        if (result == null && notFound) {
+            LOGGER.debug("Query produced null result, but non-null value was expected");
             throw new NotFoundException();
+        }
 
         return result;
     }
@@ -140,8 +148,10 @@ public class JpaResolver extends BaseResolver {
         JpaInj ann = methodParameter.getParameterAnnotation(JpaInj.class);
         Map<String, List<String>> params = getParameters(nativeWebRequest, ann.pathParams(), ann.queryParams());
         
-        if (ann.query().length() > 0 && ann.primaryKey().length() > 0)
+        if (ann.query().length() > 0 && ann.primaryKey().length() > 0) {
+            LOGGER.error("Parameters query and primaryKey are mutually exclusive");
             throw new UnsupportedOperationException("query and primaryKey parameters are mutually exclusive");
+        }
         
         String queryName;
         if (ann.primaryKey().length() > 0) {
@@ -156,8 +166,10 @@ public class JpaResolver extends BaseResolver {
             if (queryParamValue != null && queryParamValue.size() > 0)
                 queryName = queryParamValue.get(0);
             
-            if (queryName == null || queryName.length() == 0)
+            if (queryName == null || queryName.length() == 0) {
+                LOGGER.warn("Query name not specified");
                 throw new BadRequestException();
+            }
             
             if (ann.allowedQuery().length > 0) {
                 boolean allowed = false;
@@ -168,14 +180,19 @@ public class JpaResolver extends BaseResolver {
                     }
                 }
                                
-                if (!allowed)
+                if (!allowed) {
+                    LOGGER.warn("Query " + queryName + " is not in allowed list");
                     throw new ForbiddenException();
+                }
             }
             
             if (ann.forbiddenQuery().length > 0) {
-                for (String forbiddenQuery : ann.forbiddenQuery())
-                    if (forbiddenQuery.equals(queryName))
+                for (String forbiddenQuery : ann.forbiddenQuery()) {
+                    if (forbiddenQuery.equals(queryName)) {
+                        LOGGER.warn("Query " + queryName + " is in forbidden list");
                         throw new ForbiddenException();
+                    }
+                }
             }
         }
         
@@ -192,6 +209,7 @@ public class JpaResolver extends BaseResolver {
                     return resolveListByQuery(queryName, params, clazz);
             }
             else if (Collection.class.isAssignableFrom(methodParameter.getParameterType())) {
+                LOGGER.error(methodParameter.getParameterType().getName() + "is not a supported collection");
                 throw new UnsupportedOperationException(methodParameter.getParameterType().getName() + "is not a supported collection");
             }
             else if (ann.primaryKey().length() > 0) {
@@ -201,7 +219,8 @@ public class JpaResolver extends BaseResolver {
                 return resolveSingleByQuery(queryName, params, methodParameter.getParameterType(), ann.notFoundException());
             }
         }
-        catch(IllegalArgumentException ignored) {
+        catch(IllegalArgumentException e) {
+            LOGGER.warn("Query invocation failed", e);
             throw new BadRequestException();
         }
     }

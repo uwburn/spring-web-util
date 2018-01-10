@@ -1,5 +1,7 @@
 package it.mgt.util.spring.web.jsonview;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -16,6 +18,8 @@ import java.util.*;
 
 @ControllerAdvice
 public class DynamicJsonViewAdvice extends AbstractMappingJacksonResponseBodyAdvice {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(DynamicJsonViewAdvice.class);
 
     private Map<String, Class<?>> viewsMap = new HashMap<>();
     private Class<?> defaultView;
@@ -79,13 +83,15 @@ public class DynamicJsonViewAdvice extends AbstractMappingJacksonResponseBodyAdv
                 jsonView = viewsMap.get(viewName.get(0));
             }
 
-            if (jsonView == null) {
+            if (jsonView == null && !Class.class.equals(ann.defaultView())) {
                 jsonView = ann.defaultView();
             }
 
             if (jsonView == null) {
                 jsonView = defaultView;
             }
+
+            LOGGER.debug("Resolved JsonView " + jsonView.getName());
 
             if (ann.allowedView().length > 0) {
                 boolean allowed = false;
@@ -97,6 +103,7 @@ public class DynamicJsonViewAdvice extends AbstractMappingJacksonResponseBodyAdv
                 }
 
                 if (!allowed) {
+                    LOGGER.warn("JsonView " + jsonView.getName() + " is not in allowed list");
                     jsonView = null;
                 }
             }
@@ -104,6 +111,7 @@ public class DynamicJsonViewAdvice extends AbstractMappingJacksonResponseBodyAdv
             if (ann.forbiddenView().length > 0) {
                 for (Class<?> forbiddenView : ann.forbiddenView()) {
                     if (forbiddenView.equals(jsonView)) {
+                        LOGGER.warn("JsonView " + jsonView.getName() + " is in forbidden list");
                         jsonView = null;
                         break;
                     }
