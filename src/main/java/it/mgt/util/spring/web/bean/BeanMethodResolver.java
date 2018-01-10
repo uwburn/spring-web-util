@@ -4,6 +4,8 @@ import it.mgt.util.spring.web.exception.BadRequestException;
 import it.mgt.util.spring.web.exception.ForbiddenException;
 import it.mgt.util.spring.web.exception.NotFoundException;
 import it.mgt.util.spring.web.resolver.BaseResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodParameter;
@@ -21,8 +23,10 @@ import java.util.stream.Collectors;
 
 public class BeanMethodResolver extends BaseResolver {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(BeanMethodResolver.class);
+
     @Autowired
-    ApplicationContext applicationContext;
+    protected ApplicationContext applicationContext;
     
     protected String methodParamName = "method";
 
@@ -65,31 +69,38 @@ public class BeanMethodResolver extends BaseResolver {
         if (methodParamValue != null && methodParamValue.size() > 0)
             methodName = methodParamValue.get(0);
             
-        if (methodName == null || methodName.length() == 0)
+        if (methodName == null || methodName.length() == 0) {
+            LOGGER.warn("Method name not specified");
             throw new BadRequestException();
+        }
             
         if (ann.allowedMethod().length > 0) {
             boolean allowed = false;
-            for (String allowedQuery : ann.allowedMethod()) {
-                if (allowedQuery.equals(methodName)) {
+            for (String allowedMethod : ann.allowedMethod()) {
+                if (allowedMethod.equals(methodName)) {
                     allowed = true;
                     break;
                 }
             }
 
-            if (!allowed)
+            if (!allowed) {
+                LOGGER.warn("Method " + methodName + " is not in allowed list");
                 throw new ForbiddenException();
+            }
         }
             
         if (ann.forbiddenMethod().length > 0) {
-            for (String forbiddenQuery : ann.forbiddenMethod())
-                if (forbiddenQuery.equals(methodName))
+            for (String forbiddenMethod : ann.forbiddenMethod()) {
+                if (forbiddenMethod.equals(methodName)) {
+                    LOGGER.warn("Method " + methodName + " is in forbidden list");
                     throw new ForbiddenException();
+                }
+            }
         }
         
         params.remove(methodParamName);
 
-        String finalMethodName = methodName;
+        final String finalMethodName = methodName;
         List<Method> methods = Arrays.stream(ann.bean().getMethods())
                 .filter(m -> m.getName().equals(finalMethodName))
                 .filter(m -> m.getParameters().length == params.size())
@@ -106,15 +117,23 @@ public class BeanMethodResolver extends BaseResolver {
         Object result;
         Method method;
         try {
-            if (methods.size() > 1)
+            if (methods.size() == 0) {
+                LOGGER.warn("No method found with name " + methodName + " and given parameters");
                 throw new IllegalArgumentException();
+            }
+            else if (methods.size() > 1) {
+                LOGGER.warn("Multiple methods found with name " + methodName + " and given parameters");
+                throw new IllegalArgumentException();
+            }
 
             method = methods.stream()
                     .findFirst()
-                    .orElseThrow(IllegalArgumentException::new);
+                    .get();
 
-            if (!method.getReturnType().isAssignableFrom(methodParameter.getParameterType()))
+            if (!method.getReturnType().isAssignableFrom(methodParameter.getParameterType())) {
+                LOGGER.warn("Method return type (" + method.getReturnType() + ") is incompatible with parameter type (" + methodParameter.getParameterType() + ")");
                 throw new BadRequestException();
+            }
 
                 Object[] arguments = Arrays.stream(method.getParameters())
                         .map(m -> buildParams(params.get(m.getName()), m.getType()))
@@ -127,8 +146,10 @@ public class BeanMethodResolver extends BaseResolver {
         }
 
         if (!Collection.class.isAssignableFrom(method.getReturnType())) {
-            if (result == null && ann.notFoundException())
+            if (result == null && ann.notFoundException()) {
+                LOGGER.debug("Method invocation produced null result, but non-null value was expected");
                 throw new NotFoundException();
+            }
         }
 
         return result;
