@@ -19,6 +19,7 @@ public @interface JpaInj {
     String[] forbiddenQuery() default {};
     PathParam[] pathParams() default {};
     QueryParam[] queryParams() default {};
+    Class<?> hintSource() default Class.class;
     boolean notFoundException() default true;
 
 }

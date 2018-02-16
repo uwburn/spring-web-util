@@ -55,8 +55,8 @@ public class JpaResolver extends BaseResolver {
         this.pageSizeParamName = pageSizeParamName;
     }
 
-    protected Object resolveSingleByPrimaryKey(String primaryKeyParam, Map<String, List<String>> params, Class<?> type, boolean notFound) {
-        Map<String, Class<?>> hints = getHints(type);
+    protected Object resolveSingleByPrimaryKey(String primaryKeyParam, Map<String, List<String>> params, Class<?> type, Class<?> hintSource, boolean notFound) {
+        Map<String, Class<?>> hints = getHints(hintSource);
         hints.put(primaryKeyParam, JpaUtils.getIdClass(type));
         
         List<String> primaryKeyValues = params.get(primaryKeyParam);
@@ -72,8 +72,8 @@ public class JpaResolver extends BaseResolver {
         return result;
     }
     
-    protected List resolveListByPrimaryKey(String primaryKeyParam, Map<String, List<String>> params, Class<?> type) {
-        Object result = resolveSingleByPrimaryKey(primaryKeyParam, params, type, false);
+    protected List resolveListByPrimaryKey(String primaryKeyParam, Map<String, List<String>> params, Class<?> type, Class<?> hintSource) {
+        Object result = resolveSingleByPrimaryKey(primaryKeyParam, params, type, hintSource, false);
         
         if (result == null)
             return Collections.EMPTY_LIST;
@@ -82,8 +82,8 @@ public class JpaResolver extends BaseResolver {
     }
 
     @SuppressWarnings("unchecked")
-    protected Object resolveSingleByQuery(String queryName, Map<String, List<String>> params, Class<?> type, boolean notFound) {
-        Object result = resolveListByQuery(queryName, params, type)
+    protected Object resolveSingleByQuery(String queryName, Map<String, List<String>> params, Class<?> type, Class<?> hintSource, boolean notFound) {
+        Object result = resolveListByQuery(queryName, params, type, hintSource)
                 .stream()
                 .findFirst()
                 .orElse(null);
@@ -96,8 +96,8 @@ public class JpaResolver extends BaseResolver {
         return result;
     }
 
-    protected List resolveListByQuery(String queryName, Map<String, List<String>> params, Class<?> type) {
-        Map<String, Class<?>> hints = getHints(type);
+    protected List resolveListByQuery(String queryName, Map<String, List<String>> params, Class<?> type, Class<?> hintSource) {
+        Map<String, Class<?>> hints = getHints(hintSource);
 
         Query query = em.createNamedQuery(queryName);
         
@@ -198,25 +198,38 @@ public class JpaResolver extends BaseResolver {
         
         params.remove(queryParamName);
 
+        Class<?> hintSource = null;
+        if (!ann.hintSource().equals(Class.class))
+            hintSource = ann.hintSource();
+
         try {
             if (List.class.isAssignableFrom(methodParameter.getParameterType())) {
                 ParameterizedType type = (ParameterizedType) methodParameter.getGenericParameterType();
                 Class<?> clazz = Class.forName(type.getActualTypeArguments()[0].getTypeName());
 
+                if (hintSource == null)
+                    hintSource = clazz;
+
                 if (ann.primaryKey().length() > 0)
-                    return resolveListByPrimaryKey(ann.primaryKey(), params, clazz);
+                    return resolveListByPrimaryKey(ann.primaryKey(), params, clazz, hintSource);
                 else
-                    return resolveListByQuery(queryName, params, clazz);
+                    return resolveListByQuery(queryName, params, clazz, hintSource);
             }
             else if (Collection.class.isAssignableFrom(methodParameter.getParameterType())) {
                 LOGGER.error(methodParameter.getParameterType().getName() + "is not a supported collection");
                 throw new UnsupportedOperationException(methodParameter.getParameterType().getName() + "is not a supported collection");
             }
             else if (ann.primaryKey().length() > 0) {
-                return resolveSingleByPrimaryKey(ann.primaryKey(), params, methodParameter.getParameterType(), ann.notFoundException());
+                if (hintSource == null)
+                    hintSource = methodParameter.getParameterType();
+
+                return resolveSingleByPrimaryKey(ann.primaryKey(), params, methodParameter.getParameterType(), hintSource, ann.notFoundException());
             }
             else {
-                return resolveSingleByQuery(queryName, params, methodParameter.getParameterType(), ann.notFoundException());
+                if (hintSource == null)
+                    hintSource = methodParameter.getParameterType();
+
+                return resolveSingleByQuery(queryName, params, methodParameter.getParameterType(), hintSource, ann.notFoundException());
             }
         }
         catch(IllegalArgumentException e) {
