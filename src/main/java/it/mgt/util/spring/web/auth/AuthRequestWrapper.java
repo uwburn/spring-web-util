@@ -1,5 +1,6 @@
 package it.mgt.util.spring.web.auth;
 
+import it.mgt.util.spring.auth.AuthRole;
 import it.mgt.util.spring.auth.AuthUser;
 import it.mgt.util.spring.auth.PrincipalWrapper;
 
@@ -9,13 +10,15 @@ import javax.servlet.http.*;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Set;
 
 public class AuthRequestWrapper extends ServletRequestWrapper implements HttpServletRequest {
 
-    private HttpServletRequest originalRequest;
-    private String authType;
-    private AuthUser authUser;
+    protected HttpServletRequest originalRequest;
+    protected String authType;
+    protected AuthUser authUser;
 
     public AuthRequestWrapper(HttpServletRequest request) {
         super(request);
@@ -23,11 +26,11 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
         this.originalRequest = request;
     }
 
-    public AuthRequestWrapper(HttpServletRequest request, String authType, AuthUser authUser) {
+    /*public AuthRequestWrapper(HttpServletRequest request, String authType, AuthUser authUser) {
         this(request);
 
         setAuth(authType, authUser);
-    }
+    }*/
 
     @Override
     public String getAuthType() {
@@ -35,7 +38,12 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
     }
 
     public final void setAuth(String authType, AuthUser authUser) {
-        this.authType = authType;
+        if (this.authType == null) {
+            this.authType = authType;
+        }
+        else {
+            this.authType += ", " + authType;
+        }
         this.authUser = authUser;
 
         // Ensure data is fetched immediately, not when we mightn't have a valid persistence context
@@ -45,6 +53,14 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
 
     public AuthUser getAuthUser() {
         return authUser;
+    }
+
+    public Set<AuthRole> getAuthRoles() {
+        return authUser != null ? authUser.authRoles() : Collections.emptySet();
+    }
+
+    public Set<String> getAuthOperations() {
+        return authUser != null ? authUser.authOperations() : Collections.emptySet();
     }
 
     public HttpServletRequest unwrap() {

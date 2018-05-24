@@ -22,13 +22,12 @@ public class RequiredOperationInterceptor extends HandlerInterceptorAdapter {
 
             RequiredOperation ann = handlerMethod.getMethod().getAnnotation(RequiredOperation.class);
             if (ann != null) {
-                AuthUser authUser = authRequestWrapper.getAuthUser();
-                if (authUser == null) {
+                if (authRequestWrapper.getAuthType() == null) {
                     throw new UnauthorizedException();
                 }
                 
                 String requiredOperation = ann.value();
-                Collection<String> authOperations = authUser.authOperations();
+                Collection<String> authOperations = authRequestWrapper.getAuthOperations();
 
                 if (!authOperations.contains(requiredOperation)) {
                     throw new ForbiddenException();
