@@ -47,6 +47,9 @@ public abstract class BaseResolver implements HandlerMethodArgumentResolver {
             else if (Date.class.isAssignableFrom(type)) {
                 result = new Date(Long.parseLong(value));
             }
+            else if (UUID.class.isAssignableFrom(type)) {
+                result = UUID.fromString(value);
+            }
             else if (Enum.class.isAssignableFrom(type))  {
                 try {
                     Method valueOf = type.getMethod("valueOf", String.class);
