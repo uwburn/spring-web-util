@@ -22,15 +22,12 @@ public class AuthUserResolver implements HandlerMethodArgumentResolver {
         HttpServletRequest httpServletRequest = nativeWebRequest.getNativeRequest(HttpServletRequest.class);
         AuthUserInj ann = methodParameter.getParameterAnnotation(AuthUserInj.class);
 
-        AuthRequestWrapper authRequestWrapper;
+        AuthUser authUser = null;
         try {
-            authRequestWrapper = AuthRequestWrapper.extract(httpServletRequest);
+            AuthRequestWrapper authRequestWrapper = AuthRequestWrapper.extract(httpServletRequest);
+            authUser = authRequestWrapper.getAuthUser();
         }
-        catch (IllegalArgumentException e) {
-            throw new BadRequestException();
-        }
-
-        AuthUser authUser = authRequestWrapper.getAuthUser();
+        catch (IllegalArgumentException ignored) { }
 
         if (authUser == null && ann.required())
             throw new BadRequestException();
