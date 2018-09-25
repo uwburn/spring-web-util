@@ -26,13 +26,17 @@ public class BasicAuthInterceptor extends HandlerInterceptorAdapter {
 		if (request.getAuthType() != null)
 			return true;
 
-		if (!(request instanceof AuthRequestWrapper))
-			return true;
-
 		if (authUserService == null)
 			return true;
 
-		AuthRequestWrapper authRequestWrapper = (AuthRequestWrapper)request;
+		AuthRequestWrapper authRequestWrapper;
+		try {
+			authRequestWrapper = AuthRequestWrapper.extract(request);
+		}
+		catch (IllegalArgumentException e) {
+			LOGGER.trace("Request wrapper not found");
+			return true;
+		}
 
 		String header = authRequestWrapper.getHeader("Authorization");
 

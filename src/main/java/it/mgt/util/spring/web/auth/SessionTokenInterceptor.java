@@ -55,15 +55,18 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
             return true;
         }
 
-        if (!(request instanceof AuthRequestWrapper)) {
-            return true;
-        }
-
         if (authSvc == null) {
             return true;
         }
 
-        AuthRequestWrapper authRequestWrapper = (AuthRequestWrapper) request;
+        AuthRequestWrapper authRequestWrapper;
+        try {
+            authRequestWrapper = AuthRequestWrapper.extract(request);
+        }
+        catch (IllegalArgumentException e) {
+            LOGGER.trace("Request wrapper not found");
+            return true;
+        }
 
         Cookie[] cookies = authRequestWrapper.getCookies();
 

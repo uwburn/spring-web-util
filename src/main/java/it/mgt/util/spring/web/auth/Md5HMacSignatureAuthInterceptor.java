@@ -23,18 +23,7 @@ public class Md5HMacSignatureAuthInterceptor extends BaseHmacSignatureAuthInterc
 	}
 
 	@Override
-	protected String hmac(String input, String key) {
-		try {
-            Mac mac = Mac.getInstance(ALGORITHM);
-            mac.init(new SecretKeySpec(key.getBytes(), ALGORITHM));
-            byte[] hmac = mac.doFinal(input.getBytes());
-			return Base64.getEncoder().encodeToString(hmac);
-		} catch (NoSuchAlgorithmException e) {
-			logger.error("Unable to hash password", e);
-			return null;
-		} catch (InvalidKeyException e) {
-            logger.error("Unable to hash password", e);
-            return null;
-        }
-    }
+	protected String getAlgorithm() {
+		return ALGORITHM;
+	}
 }

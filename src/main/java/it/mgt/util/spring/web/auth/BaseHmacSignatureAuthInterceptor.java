@@ -8,8 +8,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Date;
 
 public abstract class BaseHmacSignatureAuthInterceptor extends HandlerInterceptorAdapter {
@@ -31,7 +36,22 @@ public abstract class BaseHmacSignatureAuthInterceptor extends HandlerIntercepto
 
     protected abstract String getAuthType();
 
-    protected abstract String hmac(String input, String key);
+    protected abstract String getAlgorithm();
+
+    protected String hmac(String input, String key) {
+        try {
+            Mac mac = Mac.getInstance(getAlgorithm());
+            mac.init(new SecretKeySpec(key.getBytes(), getAlgorithm()));
+            byte[] hmac = mac.doFinal(input.getBytes());
+            return Base64.getEncoder().encodeToString(hmac);
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.error("Unable to hash password", e);
+            return null;
+        } catch (InvalidKeyException e) {
+            LOGGER.error("Unable to hash password", e);
+            return null;
+        }
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -39,15 +59,18 @@ public abstract class BaseHmacSignatureAuthInterceptor extends HandlerIntercepto
             return true;
         }
 
-        if (!(request instanceof AuthRequestWrapper)) {
-            return true;
-        }
-
         if (authUserService == null) {
             return true;
         }
 
-        AuthRequestWrapper authRequestWrapper = (AuthRequestWrapper) request;
+        AuthRequestWrapper authRequestWrapper;
+        try {
+            authRequestWrapper = AuthRequestWrapper.extract(request);
+        }
+        catch (IllegalArgumentException e) {
+            LOGGER.trace("Request wrapper not found");
+            return true;
+        }
 
         String header = authRequestWrapper.getHeader("Authorization");
 
