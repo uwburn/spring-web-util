@@ -5,6 +5,7 @@ import it.mgt.util.spring.auth.AuthUser;
 import it.mgt.util.spring.auth.PrincipalWrapper;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestWrapper;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -19,6 +20,16 @@ public class AuthRequestWrapper extends ServletRequestWrapper implements HttpSer
     protected HttpServletRequest originalRequest;
     protected String authType;
     protected AuthUser authUser;
+
+    static AuthRequestWrapper extract(ServletRequest request) throws IllegalArgumentException {
+        if (request instanceof AuthRequestWrapper)
+            return (AuthRequestWrapper) request;
+
+        if (request instanceof ServletRequestWrapper)
+            return extract(((ServletRequestWrapper) request).getRequest());
+
+        throw new IllegalArgumentException();
+    }
 
     public AuthRequestWrapper(HttpServletRequest request) {
         super(request);

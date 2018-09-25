@@ -18,7 +18,13 @@ public class RequiredOperationInterceptor extends HandlerInterceptorAdapter {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         if (handler instanceof HandlerMethod && request instanceof AuthRequestWrapper) {
             HandlerMethod handlerMethod = (HandlerMethod) handler;
-            AuthRequestWrapper authRequestWrapper = (AuthRequestWrapper) request;
+            AuthRequestWrapper authRequestWrapper;
+            try {
+                authRequestWrapper = AuthRequestWrapper.extract(request);
+            }
+            catch (IllegalArgumentException e) {
+                return true;
+            }
 
             RequiredOperation ann = handlerMethod.getMethod().getAnnotation(RequiredOperation.class);
             if (ann != null) {

@@ -21,11 +21,16 @@ public class AuthUserResolver implements HandlerMethodArgumentResolver {
     public Object resolveArgument(MethodParameter methodParameter, ModelAndViewContainer modelAndViewContainer, NativeWebRequest nativeWebRequest, WebDataBinderFactory webDataBinderFactory) throws Exception {
         HttpServletRequest httpServletRequest = nativeWebRequest.getNativeRequest(HttpServletRequest.class);
         AuthUserInj ann = methodParameter.getParameterAnnotation(AuthUserInj.class);
-        
-        AuthUser authUser = null;
-        if (httpServletRequest instanceof AuthRequestWrapper)
-            authUser = ((AuthRequestWrapper) httpServletRequest).getAuthUser();
-            
+
+        AuthRequestWrapper authRequestWrapper;
+        try {
+            authRequestWrapper = AuthRequestWrapper.extract(httpServletRequest);
+        }
+        catch (IllegalArgumentException e) {
+            throw new BadRequestException();
+        }
+
+        AuthUser authUser = authRequestWrapper.getAuthUser();
 
         if (authUser == null && ann.required())
             throw new BadRequestException();

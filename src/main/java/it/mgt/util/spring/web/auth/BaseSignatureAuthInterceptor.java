@@ -10,6 +10,9 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Date;
 
 public abstract class BaseSignatureAuthInterceptor extends HandlerInterceptorAdapter {
@@ -31,7 +34,19 @@ public abstract class BaseSignatureAuthInterceptor extends HandlerInterceptorAda
 
     protected abstract String getAuthType();
 
-    protected abstract String hash(String input);
+    protected abstract String getAlgorithm();
+
+    protected String hash(String input) {
+        try {
+            MessageDigest md5 = MessageDigest.getInstance(getAlgorithm());
+            md5.update(input.getBytes());
+            byte[] sha = md5.digest();
+            return Base64.getEncoder().encodeToString(sha);
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.error("Unable to hash password", e);
+            return null;
+        }
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -39,15 +54,18 @@ public abstract class BaseSignatureAuthInterceptor extends HandlerInterceptorAda
             return true;
         }
 
-        if (!(request instanceof AuthRequestWrapper)) {
-            return true;
-        }
-
         if (authUserService == null) {
             return true;
         }
 
-        AuthRequestWrapper authRequestWrapper = (AuthRequestWrapper) request;
+        AuthRequestWrapper authRequestWrapper;
+        try {
+            authRequestWrapper = AuthRequestWrapper.extract(request);
+        }
+        catch (IllegalArgumentException e) {
+            LOGGER.trace("Request wrapper not found");
+            return true;
+        }
 
         String header = authRequestWrapper.getHeader("Authorization");
 

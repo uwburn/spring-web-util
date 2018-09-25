@@ -20,15 +20,7 @@ public class Md5SignatureAuthInterceptor extends BaseSignatureAuthInterceptor {
 	}
 
 	@Override
-	protected String hash(String input) {
-		try {
-			MessageDigest md5 = MessageDigest.getInstance(ALGORITHM);
-			md5.update(input.getBytes());
-			byte[] sha = md5.digest();
-			return Base64.getEncoder().encodeToString(sha);
-		} catch (NoSuchAlgorithmException e) {
-			logger.error("Unable to hash password", e);
-			return null;
-		}
+	protected String getAlgorithm() {
+		return ALGORITHM;
 	}
 }
