@@ -135,7 +135,7 @@ public class JpaResolver extends BaseResolver {
         Object result = value;
         
         Class<?> hint = hints.get(name);
-        return parseParam(value, hint);
+        return JpaUtils.parseParam(value, hint);
     }
 
     @Override

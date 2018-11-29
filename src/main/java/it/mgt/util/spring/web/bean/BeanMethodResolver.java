@@ -1,5 +1,6 @@
 package it.mgt.util.spring.web.bean;
 
+import it.mgt.util.jpa.JpaUtils;
 import it.mgt.util.spring.web.exception.BadRequestException;
 import it.mgt.util.spring.web.exception.ForbiddenException;
 import it.mgt.util.spring.web.exception.NotFoundException;
@@ -46,9 +47,9 @@ public class BeanMethodResolver extends BaseResolver {
             case 0:
                 return null;
             case 1:
-                return parseParam(values.get(0), type);
+                return JpaUtils.parseParam(values.get(0), type);
             default:
-                return values.stream().map(v -> parseParam(v, type));
+                return values.stream().map(v -> JpaUtils.parseParam(v, type));
         }
     }
 
