@@ -29,16 +29,7 @@ public class BasicAuthInterceptor extends HandlerInterceptorAdapter {
 		if (authUserService == null)
 			return true;
 
-		AuthRequestWrapper authRequestWrapper;
-		try {
-			authRequestWrapper = AuthRequestWrapper.extract(request);
-		}
-		catch (IllegalArgumentException e) {
-			LOGGER.trace("Request wrapper not found");
-			return true;
-		}
-
-		String header = authRequestWrapper.getHeader("Authorization");
+		String header = request.getHeader("Authorization");
 
 		if (header == null) {
 			LOGGER.trace("No authorization header found");
@@ -65,7 +56,8 @@ public class BasicAuthInterceptor extends HandlerInterceptorAdapter {
 			return true;
 		}
 
-		authRequestWrapper.setAuth(AUTH_TYPE, authUser);
+		request.setAttribute(AuthAttributes.AUTH_TYPE, AUTH_TYPE);
+		request.setAttribute(AuthAttributes.AUTH_USER, authUser);
 
 		return true;
 	}

@@ -4,6 +4,7 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
+@Deprecated
 public class AuthRequestWrapperFilter implements Filter {
 
     @Override

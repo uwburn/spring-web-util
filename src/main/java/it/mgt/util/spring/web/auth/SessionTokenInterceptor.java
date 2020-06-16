@@ -21,6 +21,7 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
     private String cookieName = "AuthSession";
     private String cookiePath = "/";
     private boolean cookieHttpOnly = true;
+    private String header = "session";
 
     @Autowired(required = false)
     AuthSvc authSvc;
@@ -49,30 +50,20 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
         this.cookieHttpOnly = cookieHttpOnly;
     }
 
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (request.getAuthType() != null) {
-            return true;
-        }
+    public String getHeader() {
+        return header;
+    }
 
-        if (authSvc == null) {
-            return true;
-        }
+    public void setHeader(String header) {
+        this.header = header;
+    }
 
-        AuthRequestWrapper authRequestWrapper;
-        try {
-            authRequestWrapper = AuthRequestWrapper.extract(request);
-        }
-        catch (IllegalArgumentException e) {
-            LOGGER.trace("Request wrapper not found");
-            return true;
-        }
-
-        Cookie[] cookies = authRequestWrapper.getCookies();
+    private Cookie getCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
 
         if (cookies == null) {
             LOGGER.trace("No cookies found");
-            return true;
+            return null;
         }
 
         Cookie cookie = null;
@@ -85,10 +76,48 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
 
         if (cookie == null) {
             LOGGER.trace("Cookie " + cookieName + " not found");
+            return null;
+        }
+
+        return cookie;
+    }
+
+    private String getTokenFromHeader(HttpServletRequest request) {
+        String headerValue = request.getHeader(header);
+
+        if (headerValue == null) {
+            LOGGER.trace("Header " + header + " not found");
+        }
+
+        return headerValue;
+    }
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if (request.getAuthType() != null) {
             return true;
         }
 
-        String token = cookie.getValue();
+        if (authSvc == null) {
+            return true;
+        }
+
+        String token = null;
+        // Try the cookie first
+        Cookie cookie = getCookie(request);
+        if (cookie != null) {
+            token = cookie.getValue();
+        }
+
+        // If cookie had no token, then try the header
+        if (token == null) {
+            token = getTokenFromHeader(request);
+        }
+
+        if (token == null) {
+            LOGGER.trace("No session token found");
+            return true;
+        }
 
         AuthSession authSession = authSvc.getValidAuthSession(token);
 
@@ -104,13 +133,17 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
             return true;
         }
 
-        authRequestWrapper.setAuth(AUTH_TYPE, authUser);
+        request.setAttribute(AuthAttributes.AUTH_TYPE, AUTH_TYPE);
+        request.setAttribute(AuthAttributes.AUTH_USER, authUser);
 
         authSvc.touchSession(authSession);
-        cookie.setPath(getCookiePath());
-        cookie.setHttpOnly(isCookieHttpOnly());
-        cookie.setMaxAge(authSession.getExpirySeconds());
-        response.addCookie(cookie);
+
+        if (cookie != null) {
+            cookie.setPath(getCookiePath());
+            cookie.setHttpOnly(isCookieHttpOnly());
+            cookie.setMaxAge(authSession.getExpirySeconds());
+            response.addCookie(cookie);
+        }
 
         return true;
     }

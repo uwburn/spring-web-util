@@ -24,10 +24,9 @@ public class AuthUserResolver implements HandlerMethodArgumentResolver {
 
         AuthUser authUser = null;
         try {
-            AuthRequestWrapper authRequestWrapper = AuthRequestWrapper.extract(httpServletRequest);
-            authUser = authRequestWrapper.getAuthUser();
+            authUser = (AuthUser) httpServletRequest.getAttribute(AuthAttributes.AUTH_USER);
         }
-        catch (IllegalArgumentException ignored) { }
+        catch (ClassCastException ignored) { }
 
         if (authUser == null && ann.required())
             throw new BadRequestException();

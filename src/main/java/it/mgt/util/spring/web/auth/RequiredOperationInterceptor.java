@@ -1,5 +1,6 @@
 package it.mgt.util.spring.web.auth;
 
+import it.mgt.util.spring.auth.AuthUser;
 import it.mgt.util.spring.web.exception.ForbiddenException;
 import it.mgt.util.spring.web.exception.UnauthorizedException;
 import org.springframework.web.method.HandlerMethod;
@@ -13,22 +14,22 @@ public class RequiredOperationInterceptor extends HandlerInterceptorAdapter {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (handler instanceof HandlerMethod && request instanceof AuthRequestWrapper) {
+        if (handler instanceof HandlerMethod) {
             HandlerMethod handlerMethod = (HandlerMethod) handler;
             RequiredOperation ann = handlerMethod.getMethod().getAnnotation(RequiredOperation.class);
             if (ann != null) {
-                AuthRequestWrapper authRequestWrapper = null;
+                AuthUser authUser = null;
                 try {
-                    authRequestWrapper = AuthRequestWrapper.extract(request);
+                    authUser = (AuthUser) request.getAttribute(AuthAttributes.AUTH_USER);
                 }
-                catch (IllegalArgumentException ignored) { }
+                catch (ClassCastException ignored) { }
 
-                if (authRequestWrapper == null || authRequestWrapper.getAuthType() == null) {
+                if (authUser == null) {
                     throw new UnauthorizedException();
                 }
                 
                 String requiredOperation = ann.value();
-                Collection<String> authOperations = authRequestWrapper.getAuthOperations();
+                Collection<String> authOperations = authUser.authOperations();
 
                 if (!authOperations.contains(requiredOperation)) {
                     throw new ForbiddenException();

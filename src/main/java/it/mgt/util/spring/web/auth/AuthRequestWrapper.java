@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Set;
 
+@Deprecated
 public class AuthRequestWrapper extends ServletRequestWrapper implements HttpServletRequest {
 
     protected HttpServletRequest originalRequest;

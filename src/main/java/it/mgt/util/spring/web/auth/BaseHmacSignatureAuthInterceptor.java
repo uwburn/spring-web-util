@@ -63,16 +63,7 @@ public abstract class BaseHmacSignatureAuthInterceptor extends HandlerIntercepto
             return true;
         }
 
-        AuthRequestWrapper authRequestWrapper;
-        try {
-            authRequestWrapper = AuthRequestWrapper.extract(request);
-        }
-        catch (IllegalArgumentException e) {
-            LOGGER.trace("Request wrapper not found");
-            return true;
-        }
-
-        String header = authRequestWrapper.getHeader("Authorization");
+        String header = request.getHeader("Authorization");
 
         if (header == null) {
             LOGGER.trace("No authorization header found");
@@ -84,19 +75,19 @@ public abstract class BaseHmacSignatureAuthInterceptor extends HandlerIntercepto
             return true;
         }
 
-        String strReceivedTime = authRequestWrapper.getHeader("Time");
+        String strReceivedTime = request.getHeader("Time");
         if (strReceivedTime == null) {
             LOGGER.trace("Missing time header");
             return true;
         }
 
-        String username = authRequestWrapper.getHeader("Username");
+        String username = request.getHeader("Username");
         if (username == null) {
             LOGGER.trace("Missing username header");
             return true;
         }
 
-        String receivedSignature = authRequestWrapper.getHeader("Signature");
+        String receivedSignature = request.getHeader("Signature");
         if (receivedSignature == null) {
             LOGGER.trace("Missing signature header");
             return true;
@@ -129,7 +120,8 @@ public abstract class BaseHmacSignatureAuthInterceptor extends HandlerIntercepto
             return true;
         }
 
-        authRequestWrapper.setAuth(getAuthType(), authUser);
+        request.setAttribute(AuthAttributes.AUTH_TYPE, getAuthType());
+        request.setAttribute(AuthAttributes.AUTH_USER, authUser);
 
         return true;
     }

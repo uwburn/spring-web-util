@@ -1,5 +1,6 @@
 package it.mgt.util.spring.web.auth;
 
+import it.mgt.util.spring.auth.AuthUser;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
@@ -11,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 
 public class AuthorizationInterceptor extends HandlerInterceptorAdapter {
 	
-	private static enum AuthStatus {
+	private enum AuthStatus {
 		OK, FORBIDDEN, UNAUTHORIZED
 	}
 
@@ -93,13 +94,13 @@ public class AuthorizationInterceptor extends HandlerInterceptorAdapter {
     	if (rolesAllowed == null || rolesAllowed.value().length == 0)
     		return AuthStatus.OK;
 
-    	boolean hasPrincipal = httpServletRequest.getUserPrincipal() != null;
+    	boolean hasPrincipal = getPrincipal(httpServletRequest) != null;
     	
     	if (!hasPrincipal)
     		return AuthStatus.UNAUTHORIZED;
     	
 		for (String role : rolesAllowed.value())
-			if (httpServletRequest.isUserInRole(role))
+			if (isUserInRole(httpServletRequest, role))
 				return AuthStatus.OK;
 		
 		return AuthStatus.FORBIDDEN;
@@ -109,7 +110,7 @@ public class AuthorizationInterceptor extends HandlerInterceptorAdapter {
 		if (permitAll == null)
 			return AuthStatus.OK;
 
-		boolean hasPrincipal = httpServletRequest.getUserPrincipal() != null;
+		boolean hasPrincipal = getPrincipal(httpServletRequest) != null;
 
 		if (!hasPrincipal)
 			return AuthStatus.UNAUTHORIZED;
@@ -130,5 +131,25 @@ public class AuthorizationInterceptor extends HandlerInterceptorAdapter {
 			return true;
 		}
     }
+
+    private AuthUser getPrincipal(HttpServletRequest httpServletRequest) {
+		try {
+			return (AuthUser) httpServletRequest.getAttribute(AuthAttributes.AUTH_USER);
+		}
+		catch (ClassCastException ignored) {
+			return null;
+		}
+	}
+
+	private boolean isUserInRole(HttpServletRequest httpServletRequest, String role) {
+		AuthUser authUser = getPrincipal(httpServletRequest);
+
+		if (authUser == null)
+			return false;
+
+		return authUser.authRoles()
+				.stream()
+				.anyMatch(r -> r.getName().equals(role));
+	}
 	
 }
