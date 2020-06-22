@@ -1,6 +1,7 @@
 package it.mgt.util.spring.web.config;
 
 import it.mgt.util.spring.web.jsonview.DynamicJsonViewAdvice;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -57,7 +58,12 @@ public class EnhancedWebMvcConfigurerAdapter implements WebMvcConfigurer, Applic
 
         JsonViewConfiguration configAnn = getAnnotation(this.getClass(), JsonViewConfiguration.class);
         
-        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
+        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false) {
+            @Override
+            protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+                return super.isCandidateComponent(beanDefinition) || beanDefinition.getMetadata().isAbstract();
+            }
+        };
         provider.addIncludeFilter(new AnnotationTypeFilter(NamedView.class));
         
         Map<String, Object> jsonViewConfigs = applicationContext.getBeansWithAnnotation(JsonViewConfiguration.class);
