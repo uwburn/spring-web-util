@@ -19,6 +19,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class JpaResolver extends BaseResolver {
 
@@ -73,12 +74,16 @@ public class JpaResolver extends BaseResolver {
     }
     
     protected List resolveListByPrimaryKey(String primaryKeyParam, Map<String, List<String>> params, Class<?> type, Class<?> hintSource) {
-        Object result = resolveSingleByPrimaryKey(primaryKeyParam, params, type, hintSource, false);
-        
-        if (result == null)
-            return Collections.EMPTY_LIST;
-        else
-            return Collections.singletonList(result);
+        List<String> primaryKeys = params.get(primaryKeyParam);
+
+        return primaryKeys.stream()
+                .map(pk -> {
+                    Map<String, List<String>> p = Collections.singletonMap(primaryKeyParam, Collections.singletonList(pk));
+
+                    return resolveSingleByPrimaryKey(primaryKeyParam, p, type, hintSource, false);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
@@ -127,7 +132,7 @@ public class JpaResolver extends BaseResolver {
             case 1:
                 return buildParam(name, values.get(0), hints);
             default:
-                return values.stream().map(v -> buildParam(name, v, hints));
+                return values.stream().map(v -> buildParam(name, v, hints)).collect(Collectors.toList());
         }
     }
     
