@@ -1,8 +1,8 @@
 package it.mgt.util.spring.web.auth;
 
 import it.mgt.util.spring.auth.AuthSession;
-import it.mgt.util.spring.auth.AuthUser;
 import it.mgt.util.spring.auth.AuthSvc;
+import it.mgt.util.spring.auth.AuthUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +22,7 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
     private String cookiePath = "/";
     private boolean cookieHttpOnly = true;
     private String header = "session";
+    private boolean extendSession = true;
 
     @Autowired(required = false)
     AuthSvc authSvc;
@@ -56,6 +57,14 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
 
     public void setHeader(String header) {
         this.header = header;
+    }
+
+    public boolean isExtendSession() {
+        return extendSession;
+    }
+
+    public void setExtendSession(boolean extendSession) {
+        this.extendSession = extendSession;
     }
 
     private Cookie getCookie(HttpServletRequest request) {
@@ -136,13 +145,15 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
         request.setAttribute(AuthAttributes.AUTH_TYPE, AUTH_TYPE);
         request.setAttribute(AuthAttributes.AUTH_USER, authUser);
 
-        authSvc.touchSession(authSession);
+        if (extendSession) {
+            authSvc.touchSession(authSession);
 
-        if (cookie != null) {
-            cookie.setPath(getCookiePath());
-            cookie.setHttpOnly(isCookieHttpOnly());
-            cookie.setMaxAge(authSession.getExpirySeconds());
-            response.addCookie(cookie);
+            if (cookie != null) {
+                cookie.setPath(getCookiePath());
+                cookie.setHttpOnly(isCookieHttpOnly());
+                cookie.setMaxAge(authSession.getExpirySeconds());
+                response.addCookie(cookie);
+            }
         }
 
         return true;
