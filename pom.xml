@@ -11,7 +11,7 @@
     <name>spring-web-util</name>
     <groupId>it.mgt.util</groupId>
     <artifactId>spring-web</artifactId>
-    <version>1.2.4</version>
+    <version>1.2.5</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -23,12 +23,19 @@
         <slf4j.version>1.7.25</slf4j.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>uwburn-public</id>
+            <url>https://public:&#103;hp_USiLfE56hyJwBouilQKlVd78RViQxq3eXDiW@maven.pkg.github.com/uwburn/*</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- Michele -->
         <dependency>
             <groupId>it.mgt.util</groupId>
             <artifactId>jpa</artifactId>
-            <version>1.0.3</version>
+            <version>1.0.4</version>
         </dependency>
         <dependency>
             <groupId>it.mgt.util</groupId>
@@ -67,6 +74,14 @@
             <version>${slf4j.version}</version>
         </dependency>
     </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/uwburn/spring-web-util</url>
+        </repository>
+    </distributionManagement>
 
     <build>
         <finalName>${project.name}-${project.version}</finalName>
