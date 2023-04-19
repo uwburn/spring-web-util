@@ -23,6 +23,7 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
     private boolean cookieHttpOnly = true;
     private String header = "session";
     private boolean extendSession = true;
+    private String sessionExpiryHeader = "Session-Expiry";
 
     @Autowired(required = false)
     AuthSvc authSvc;
@@ -65,6 +66,14 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
 
     public void setExtendSession(boolean extendSession) {
         this.extendSession = extendSession;
+    }
+
+    public String getSessionExpiryHeader() {
+        return sessionExpiryHeader;
+    }
+
+    public void setSessionExpiryHeader(String sessionExpiryHeader) {
+        this.sessionExpiryHeader = sessionExpiryHeader;
     }
 
     private Cookie getCookie(HttpServletRequest request) {
@@ -154,6 +163,10 @@ public class SessionTokenInterceptor extends HandlerInterceptorAdapter {
                 cookie.setMaxAge(authSession.getExpirySeconds());
                 response.addCookie(cookie);
             }
+        }
+
+        if (sessionExpiryHeader != null) {
+            response.setHeader(sessionExpiryHeader, String.valueOf(authSession.getExpirySeconds()));
         }
 
         return true;
