@@ -12,5 +12,38 @@
         </httpHeaders>
       </configuration>
     </server>
+    <server>
+      <id>gitlab-maven-ext</id>
+      <configuration>
+        <httpHeaders>
+          <property>
+            <name>Job-Token</name>
+            <value>${env.CI_JOB_TOKEN}</value>
+          </property>
+        </httpHeaders>
+      </configuration>
+    </server>
   </servers>
+  <profiles>
+    <profile>
+      <id>gitlab</id>
+      <repositories>
+        <repository>
+          <id>central</id>
+          <name>Maven Central</name>
+          <url>https://repo.maven.apache.org/maven2/</url>
+        </repository>
+        <repository>
+          <id>gitlab-maven-ext</id>
+          <name>gitlab-maven-ext</name>
+          <url>https://gitlab.holonix.biz/api/v4/groups/19/-/packages/maven</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>gitlab</activeProfile>
+  </activeProfiles>
 </settings>
