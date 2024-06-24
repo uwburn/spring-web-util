@@ -26,12 +26,12 @@
     <dependencies>
         <!-- Michele -->
         <dependency>
-            <groupId>com.github.uwburn</groupId>
+            <groupId>it.mgt.util</groupId>
             <artifactId>jpa-util</artifactId>
             <version>1.0.4</version>
         </dependency>
         <dependency>
-            <groupId>com.github.uwburn</groupId>
+            <groupId>it.mgt.util</groupId>
             <artifactId>spring-util</artifactId>
             <version>1.1.11</version>
         </dependency>
