@@ -29,23 +29,19 @@
       <id>gitlab</id>
       <repositories>
         <repository>
-          <id>central</id>
-          <name>Maven Central</name>
-          <url>https://repo.maven.apache.org/maven2/</url>
-        </repository>
-        <repository>
           <id>gitlab-maven</id>
           <name>gitlab-maven</name>
           <url>${env.CI_API_V4_URL}/projects/${env.CI_PROJECT_ID}/packages/maven</url>
-          <releases><enabled>true</enabled></releases>
-          <snapshots><enabled>true</enabled></snapshots>
         </repository>
         <repository>
           <id>gitlab-maven-ext</id>
           <name>gitlab-maven-ext</name>
           <url>${env.CI_API_V4_URL}/groups/19/-/packages/maven</url>
-          <releases><enabled>true</enabled></releases>
-          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+        <repository>
+          <id>central</id>
+          <name>Maven Central</name>
+          <url>https://repo.maven.apache.org/maven2/</url>
         </repository>
       </repositories>
     </profile>
